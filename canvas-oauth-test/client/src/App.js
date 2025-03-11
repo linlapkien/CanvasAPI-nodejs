@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import Register from './Register';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [showRegister, setShowRegister] = useState(false);
 
   // Check if we're logged in by hitting our server's /api/current_user
   useEffect(() => {
@@ -43,6 +45,15 @@ function App() {
           <button onClick={handleLogin}>Login with Canvas</button>
         </>
       )}
+
+      <hr />
+
+      {/* Toggle the register form */}
+      <button onClick={() => setShowRegister(!showRegister)}>
+        {showRegister ? 'Hide Register' : 'Register Here'}
+      </button>
+
+      {showRegister && <Register />}
     </div>
   );
 }
