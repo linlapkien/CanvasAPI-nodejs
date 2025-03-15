@@ -162,6 +162,49 @@ async function getAccountCourses(accountId, perPage = 100) {
 }
 
 /**
+ * Fetches **all courses** for a given user, handling pagination automatically.
+ *
+ * GET /api/v1/users/:user_id/courses (requires admin or observer permissions).
+ *
+ * @param {number|string} userId - The ID of the Canvas user.
+ * @param {number} [perPage=100] - Number of courses per page (Canvas default is 10).
+ * @returns {Promise<Array>} Array of all courses for that user.
+ */
+async function getUserCourses(userId, perPage = 100) {
+  if (!userId) {
+    throw new Error('No userId provided to getUserCourses()');
+  }
+
+  // Starting endpoint
+  let endpoint = `/users/${userId}/courses?per_page=${perPage}`;
+  let allCourses = [];
+
+  try {
+    while (endpoint) {
+      const response = await canvasClient.get(endpoint);
+      // Merge the courses from this page
+      allCourses = allCourses.concat(response.data);
+
+      // Check the response headers for a Link header to find the next page
+      const linkHeader = response.headers.link || response.headers.Link;
+      endpoint = parseNextUrl(linkHeader);
+    }
+
+    return allCourses;
+  } catch (error) {
+    const { response } = error;
+    console.error('Error fetching user courses:');
+    if (response) {
+      console.error('Status:', response.status, response.statusText);
+      console.error('Data:', response.data);
+    } else {
+      console.error('Message:', error.message);
+    }
+    throw error;
+  }
+}
+
+/**
  * Create a new course in a given account.
  *
  * @param {number|string} accountId - The account ID where the course will be created
@@ -208,4 +251,5 @@ module.exports = {
   getCourses,
   createCourse,
   getAccountCourses,
+  getUserCourses,
 };
