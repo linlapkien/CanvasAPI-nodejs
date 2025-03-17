@@ -13,6 +13,7 @@ const {
   SESSION_SECRET,
   CANVAS_ACCOUNT_ID,
   CANVAS_ADMIN_TOKEN,
+  CMS_BASE_URL,
 } = process.env;
 
 // Create an Express app
@@ -21,7 +22,7 @@ const app = express();
 // 1) Allow requests from our React dev server (http://localhost:3000)
 app.use(
   cors({
-    origin: 'http://localhost:3000',
+    origin: CMS_BASE_URL,
     credentials: true, // Allow sending cookies/session
   })
 );
@@ -29,7 +30,7 @@ app.use(
 // 2) Use sessions to store login state
 app.use(
   session({
-    secret: SESSION_SECRET || 'fallbacksecret',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
   })
@@ -81,7 +82,7 @@ app.get('/oauth/callback', async (req, res) => {
     req.session.user = userRes.data;
 
     // Redirect the user back to the React front-end (http://localhost:3000)
-    res.redirect('http://localhost:3000');
+    res.redirect(CMS_BASE_URL);
   } catch (err) {
     console.error('OAuth callback error:', err.response?.data || err.message);
     res.status(500).send('OAuth Error');
@@ -102,7 +103,7 @@ app.get('/api/current_user', (req, res) => {
 // Logout: destroy session Then redirects back to the React front-end.
 app.get('/oauth/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('http://localhost:3000');
+    res.redirect(CMS_BASE_URL);
   });
 });
 
