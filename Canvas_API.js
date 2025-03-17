@@ -2,18 +2,17 @@
 const axios = require('axios');
 require('dotenv').config(); // loads .env into process.env
 
-const CANVAS_API_URL =
-  process.env.CANVAS_API_URL || 'http://localhost:64529/api/v1';
-const CANVAS_ACCESS_TOKEN =
-  process.env.CANVAS_ACCESS_TOKEN ||
-  '48H9BMRCAnvLvLCk86aYJkK23ymfYvwMWUBfVyuKKBMzKVBXuE28KrGt6AE4KWAV';
+const CANVAS_API_URL = process.env.CANVAS_API_URL;
+const CANVAS_ACCESS_TOKEN = process.env.CANVAS_ACCESS_TOKEN;
 
 // Create an Axios instance with default config
 const canvasClient = axios.create({
   baseURL: CANVAS_API_URL,
+  timeout: 10000, // 10 seconds
   headers: {
     Authorization: `Bearer ${CANVAS_ACCESS_TOKEN}`,
     'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
 });
 
@@ -245,6 +244,7 @@ async function createCourse(accountId, courseData) {
 }
 
 module.exports = {
+  canvasClient,
   getUsers,
   getUserById,
   updateAccountName,

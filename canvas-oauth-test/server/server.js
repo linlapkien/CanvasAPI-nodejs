@@ -161,6 +161,37 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// --------------------------------------------------------------------------------------------
+/**
+ * GET /api/users
+ * Fetches list of users under an account
+ */
+app.get('/api/users', async (req, res) => {
+  try {
+    const url = `${CANVAS_BASE_URL}/api/v1/accounts/${CANVAS_ACCOUNT_ID}/users?per_page=100`;
+
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${CANVAS_ADMIN_TOKEN}`,
+      },
+    });
+
+    return res.json({
+      success: true,
+      users: response.data,
+    });
+  } catch (error) {
+    console.error(
+      'Error fetching users:',
+      error.response?.data || error.message
+    );
+    return res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message,
+    });
+  }
+});
+
 // Start server on port 3002
 app.listen(3002, () => {
   console.log('Canvas OAuth server running on http://localhost:3002');

@@ -3,11 +3,11 @@ const { createCourse } = require('./Canvas_API');
 
 (async function run() {
   try {
-    const accountId = 3; // account ID
+    const accountId = 1; // account ID
 
     const courseData = {
-      name: 'My New Course D',
-      course_code: 'Course D',
+      name: 'My New Course C',
+      course_code: 'Course C',
       // Optional fields
       start_at: '2025-03-10T01:00:00Z',
       end_at: '2025-06-01T01:00:00Z',
