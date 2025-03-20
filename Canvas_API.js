@@ -243,6 +243,41 @@ async function createCourse(accountId, courseData) {
   }
 }
 
+/**
+ * GET /api/profile
+ * Fetches the Canvas profile for the authenticated user
+ */
+app.get('/api/profile', async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const userId = req.session.user.id; // Assuming you stored canvas user id here
+  const accessToken = req.session.token; // Assuming token is stored in session after login
+
+  try {
+    const response = await fetch(
+      `${process.env.CANVAS_API_URL}/api/v1/users/${userId}/profile`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      return res.status(response.status).json({ error });
+    }
+
+    const profile = await response.json();
+    return res.json(profile);
+  } catch (err) {
+    console.error('Error fetching profile:', err);
+    return res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
 module.exports = {
   canvasClient,
   getUsers,

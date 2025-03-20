@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Register from './Register';
+import ProfileForm from './ProfileForm';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -29,6 +30,8 @@ function App() {
     window.location.href = 'http://localhost:3002/oauth/logout';
   };
 
+  console.log('User:', user);
+
   return (
     <div style={{ padding: '2rem' }}>
       <h1>Canvas OAuth2 Test</h1>
@@ -38,6 +41,44 @@ function App() {
             You are logged in as <strong>{user.name}</strong>
           </p>
           <button onClick={handleLogout}>Logout</button>
+          {/* Button to get profile */}
+          <div style={{ marginTop: '1rem' }}></div>
+
+          {/* Show profile if fetched */}
+          {user && (
+            <div
+              style={{
+                marginTop: '1rem',
+                border: '1px solid #ccc',
+                padding: '1rem',
+              }}
+            >
+              <h3>Profile Details</h3>
+              <p>
+                <strong>ID:</strong> {user.id}
+              </p>
+              <p>
+                <strong>Name:</strong> {user.name}
+              </p>
+              <p>
+                <strong>Pronoun:</strong> {user.pronouns}
+              </p>
+              <p>
+                <strong>Short Name:</strong> {user.short_name}
+              </p>
+              <p>
+                <strong>Sortable Name:</strong> {user.sortable_name}
+              </p>
+              <p>
+                <strong>Timezone:</strong> {user.time_zone}
+              </p>
+              <p>
+                <strong>Email/ Login_id:</strong> {user.login_id}
+              </p>
+              <img src={user.avatar_url} alt="Avatar" width="80" />
+            </div>
+          )}
+          <ProfileForm user={user} />
         </>
       ) : (
         <>
@@ -45,14 +86,11 @@ function App() {
           <button onClick={handleLogin}>Login with Canvas</button>
         </>
       )}
-
       <hr />
-
       {/* Toggle the register form */}
       <button onClick={() => setShowRegister(!showRegister)}>
         {showRegister ? 'Hide Register' : 'Register Here'}
       </button>
-
       {showRegister && <Register />}
     </div>
   );

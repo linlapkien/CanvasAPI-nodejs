@@ -20,8 +20,11 @@ function Register() {
 
       if (data.success) {
         setMessage(`User created in Canvas! ID: ${data.canvasUser.id}`);
+        console.log('User created:', data);
+        console.log('User created:', data.canvasUser);
       } else {
         setMessage(`Error: ${JSON.stringify(data.error)}`);
+        console.log('Error:', data);
       }
     } catch (err) {
       setMessage(`Request failed: ${err.message}`);

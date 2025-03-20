@@ -76,10 +76,13 @@ app.get('/oauth/callback', async (req, res) => {
     req.session.canvasAccessToken = access_token;
 
     // (Optional) Fetch user info (like name, email, etc.) from Canvas
-    const userRes = await axios.get(`${CANVAS_BASE_URL}/api/v1/users/self`, {
-      headers: { Authorization: `Bearer ${access_token}` },
-    });
-    req.session.user = userRes.data;
+    const userRes = await axios.get(
+      `${CANVAS_BASE_URL}/api/v1/users/self/profile`,
+      {
+        headers: { Authorization: `Bearer ${access_token}` },
+      }
+    );
+    req.session.user = { ...userRes.data, token: access_token };
 
     // Redirect the user back to the React front-end (http://localhost:3000)
     res.redirect(CMS_BASE_URL);
@@ -190,6 +193,60 @@ app.get('/api/users', async (req, res) => {
       success: false,
       error: error.response?.data || error.message,
     });
+  }
+});
+
+// --------------------------------------------------------------------------------------------
+/**
+ /**
+ * PUT /api/profile/update
+ * Updates Canvas profile using /self endpoint
+ */
+app.put('/api/profile/update', async (req, res) => {
+  if (!req.session.user)
+    return res.status(401).json({ error: 'Not authenticated' });
+
+  const { field, value } = req.body;
+  const token = req.session.canvasAccessToken;
+
+  const validFields = ['name', 'time_zone', 'pronouns'];
+  if (!validFields.includes(field)) {
+    return res.status(400).json({ error: 'Invalid field' });
+  }
+
+  const body = {
+    user: {
+      [field]: value,
+    },
+  };
+
+  try {
+    const response = await fetch(
+      `${process.env.CANVAS_BASE_URL}/api/v1/users/self`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Canvas API Error (${response.status}):`, errorText);
+      return res
+        .status(response.status)
+        .json({ error: 'Canvas API call failed', canvasError: errorText });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('Update failed:', err);
+    res.status(500).json({ error: 'Update failed', details: err.message });
   }
 });
 
