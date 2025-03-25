@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import Register from './Register';
-import ProfileForm from './ProfileForm';
+import ProfileForm from './components/ProfileForm';
+import CourseList from './components/CourseList';
 
 function App() {
   const [user, setUser] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
+  const [userCourses, setUserCourses] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
+  const [showCourses, setShowCourses] = useState(false);
 
   // Check if we're logged in by hitting our server's /api/current_user
   useEffect(() => {
@@ -41,10 +45,10 @@ function App() {
             You are logged in as <strong>{user.name}</strong>
           </p>
           <button onClick={handleLogout}>Logout</button>
-          {/* Button to get profile */}
+          {/*-------- Button to get profile --------*/}
           <div style={{ marginTop: '1rem' }}></div>
 
-          {/* Show profile if fetched */}
+          {/*-------- Show profile if fetched --------*/}
           {user && (
             <div
               style={{
@@ -78,7 +82,34 @@ function App() {
               <img src={user.avatar_url} alt="Avatar" width="80" />
             </div>
           )}
+
           <ProfileForm user={user} />
+
+          {/* ---------------- Courses Section ---------------------- */}
+          <hr />
+          <h2>Courses Section</h2>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button onClick={() => setShowCourses('user')} disabled={!user}>
+              View My Courses
+            </button>
+            <button onClick={() => setShowCourses('all')}>
+              View All Canvas Courses
+            </button>
+          </div>
+
+          {/* Conditionally render course lists */}
+          {showCourses === 'user' && user && (
+            <>
+              <h3 style={{ marginTop: '1rem' }}>My Courses</h3>
+              <CourseList userId={user.id} />
+            </>
+          )}
+          {showCourses === 'all' && (
+            <>
+              <h3 style={{ marginTop: '1rem' }}>All Canvas Courses</h3>
+              <CourseList />
+            </>
+          )}
         </>
       ) : (
         <>

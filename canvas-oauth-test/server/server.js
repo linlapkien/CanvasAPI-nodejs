@@ -250,6 +250,106 @@ app.put('/api/profile/update', async (req, res) => {
   }
 });
 
+// --------------------------------------------------------------------------------------------
+/**
+ * GET /api/courses/all
+ * Get ALL published courses under an account (accessible by both users & admins)
+ */
+app.get('/api/courses/all', async (req, res) => {
+  if (!req.session.user)
+    return res.status(401).json({ error: 'Not authenticated' });
+
+  const token = process.env.CANVAS_ADMIN_TOKEN;
+  const accountId = process.env.CANVAS_ACCOUNT_ID;
+
+  const { state } = req.query;
+
+  if (!token) {
+    return res.status(500).json({ error: 'Missing Canvas Admin Token' });
+  }
+
+  const params = new URLSearchParams();
+  if (state) {
+    if (Array.isArray(state)) {
+      state.forEach((s) => params.append('state', s));
+    } else {
+      params.append('state', state);
+    }
+  }
+
+  const endpoint = `${
+    process.env.CANVAS_BASE_URL
+  }/api/v1/accounts/${accountId}/courses?${params.toString()}`;
+
+  params.append('per_page', '100'); // Pagination
+
+  try {
+    console.log(`Fetching courses from: ${endpoint}`);
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: 'Canvas API call failed',
+        canvasError: data,
+      });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('Failed to fetch courses:', err);
+    res.status(500).json({ error: 'Fetch failed', details: err.message });
+  }
+});
+
+/**
+ * GET /api/users/:userId/courses
+ * Get active courses for a specific user with filters: state[], enrollment_state
+ */
+app.get('/api/users/:userId/courses', async (req, res) => {
+  if (!req.session.user)
+    return res.status(401).json({ error: 'Not authenticated' });
+
+  const token = req.session.canvasAccessToken;
+  const { userId } = req.params;
+  const { state } = req.query;
+
+  const params = new URLSearchParams();
+  if (state) params.append('state', state);
+
+  try {
+    const response = await fetch(
+      `${
+        process.env.CANVAS_BASE_URL
+      }/api/v1/users/${userId}/courses?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res
+        .status(response.status)
+        .json({ error: 'Canvas API call failed', canvasError: data });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('Failed to fetch user courses:', err);
+    res.status(500).json({ error: 'Fetch failed', details: err.message });
+  }
+});
+
 // Start server on port 3002
 app.listen(3002, () => {
   console.log('Canvas OAuth server running on http://localhost:3002');
