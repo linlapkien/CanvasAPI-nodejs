@@ -350,40 +350,7 @@ app.get('/api/users/:userId/courses', async (req, res) => {
   }
 });
 
-/**
- * GET /api/users/email/:email
- * Retrieves a user's ID from their email
- */
-app.get('/api/users/email/:email', async (req, res) => {
-  const { email } = req.params;
-
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
-  }
-
-  try {
-    const response = await axios.get(
-      `${CANVAS_BASE_URL}/api/v1/accounts/${CANVAS_ACCOUNT_ID}/users?search_term=${email}`,
-      {
-        headers: { Authorization: `Bearer ${CANVAS_ADMIN_TOKEN}` },
-      }
-    );
-
-    const users = response.data;
-    if (!users || users.length === 0) {
-      return res.status(404).json({ error: 'User not found in Canvas' });
-    }
-
-    return res.json({ userId: users[0].id });
-  } catch (error) {
-    console.error(
-      'Error fetching user:',
-      error.response?.data || error.message
-    );
-    return res.status(500).json({ error: 'Canvas API call failed' });
-  }
-});
-
+// --------------------------------------------------------------------------------------------
 /**
  * POST /api/v1/courses/:course_id/enrollments
  * Enroll a user in a course by email
