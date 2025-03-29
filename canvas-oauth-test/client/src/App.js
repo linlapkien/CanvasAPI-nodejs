@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import Register from './Register';
 import ProfileForm from './components/ProfileForm';
 import CourseList from './components/CourseList';
+import axios from 'axios';
 
 function App() {
   const [user, setUser] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
-  const [userCourses, setUserCourses] = useState([]);
-  const [allCourses, setAllCourses] = useState([]);
   const [showCourses, setShowCourses] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [courseId, setCourseId] = useState('');
+  const [enrollmentType, setEnrollmentType] = useState('StudentEnrollment');
 
   // Check if we're logged in by hitting our server's /api/current_user
   useEffect(() => {
@@ -35,6 +37,32 @@ function App() {
   };
 
   console.log('User:', user);
+
+  // Function to enroll a user by user ID
+  const handleEnroll = async () => {
+    if (!userId || !courseId) {
+      alert('Please enter both User ID and Course ID.');
+      return;
+    }
+
+    try {
+      const enrollRes = await axios.post(
+        `http://localhost:3002/api/v1/courses/${courseId}/enrollments`,
+        {
+          user_id: userId,
+          enrollment_type: enrollmentType, // e.g., "StudentEnrollment"
+        }
+      );
+
+      alert(`User ${userId} has been enrolled successfully!`);
+    } catch (error) {
+      console.error(
+        'Error enrolling user:',
+        error.response?.data || error.message
+      );
+      alert('Failed to enroll user. Please check the User ID or Course ID.');
+    }
+  };
 
   return (
     <div style={{ padding: '2rem' }}>
@@ -97,6 +125,34 @@ function App() {
             </button>
           </div>
 
+          {/* ------------- Enroll User Section --------------- */}
+          <hr />
+          <h2>Enroll User</h2>
+          <div>
+            <input
+              type="text"
+              placeholder="Enter User ID"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Enter Course ID"
+              value={courseId}
+              onChange={(e) => setCourseId(e.target.value)}
+            />
+            <select
+              value={enrollmentType}
+              onChange={(e) => setEnrollmentType(e.target.value)}
+            >
+              <option value="StudentEnrollment">Student</option>
+              <option value="TeacherEnrollment">Teacher</option>
+              <option value="TaEnrollment">TA</option>
+              <option value="ObserverEnrollment">Observer</option>
+            </select>
+            <button onClick={handleEnroll}>Enroll</button>
+          </div>
+
           {/* Conditionally render course lists */}
           {showCourses === 'user' && user && (
             <>
@@ -117,6 +173,7 @@ function App() {
           <button onClick={handleLogin}>Login with Canvas</button>
         </>
       )}
+
       <hr />
       {/* Toggle the register form */}
       <button onClick={() => setShowRegister(!showRegister)}>

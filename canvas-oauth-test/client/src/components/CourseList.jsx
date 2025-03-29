@@ -1,63 +1,52 @@
 import { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Grid,
-} from '@mui/material';
+import { Card, CardContent, Typography, Button, Grid } from '@mui/material';
+import axios from 'axios';
 
 export default function CourseList({ userId = null }) {
   const [courses, setCourses] = useState([]);
-  const [state, setState] = useState('');
   const [page, setPage] = useState(1);
 
-  const fetchCourses = async () => {
-    const params = new URLSearchParams();
-    if (state) params.append('state', state);
-    params.append('page', page);
+  useEffect(() => {
+    const fetchCourses = async () => {
+      const params = new URLSearchParams({ page });
 
-    const endpoint = userId
-      ? `http://localhost:3002/api/users/${userId}/courses?${params.toString()}`
-      : `http://localhost:3002/api/courses/all?${params.toString()}`;
+      const endpoint = userId
+        ? `http://localhost:3002/api/users/${userId}/courses?${params}`
+        : `http://localhost:3002/api/courses/all?${params}`;
+
+      try {
+        const { data } = await axios.get(endpoint, { withCredentials: true });
+        setCourses(data);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      }
+    };
+
+    fetchCourses();
+  }, [page, userId]);
+
+  const handleEnrollUser = async (courseId) => {
+    const userId = prompt('Enter the User ID to enroll:');
+    if (!userId) return;
 
     try {
-      const res = await fetch(endpoint, { credentials: 'include' });
-      const data = await res.json();
-      console.log('Fetched courses:', data);
-      setCourses(data);
+      await axios.post(
+        `http://localhost:3002/api/v1/courses/${courseId}/enrollments`,
+        {
+          user_id: userId,
+          enrollment_type: 'StudentEnrollment',
+        }
+      );
+
+      alert(`User ${userId} has been enrolled successfully!`);
     } catch (error) {
-      console.error('Error fetching courses:', error);
+      console.error('Error enrolling user:', error);
+      alert('Failed to enroll user.');
     }
   };
 
-  useEffect(() => {
-    fetchCourses();
-  }, [state, page, userId]);
-
   return (
     <div style={{ padding: '1rem' }}>
-      {/* Filters */}
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth>
-            <InputLabel>State</InputLabel>
-            <Select value={state} onChange={(e) => setState(e.target.value)}>
-              <MenuItem value="">All States</MenuItem>
-              <MenuItem value="unpublished">Unpublished</MenuItem>
-              <MenuItem value="available">Available</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="deleted">Deleted</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-      </Grid>
-
-      {/* Course Cards */}
       <Grid container spacing={2}>
         {courses.length > 0 ? (
           courses.map((course) => (
@@ -68,10 +57,13 @@ export default function CourseList({ userId = null }) {
                     {course.name || 'Unnamed Course'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Code: {course.course_code}
+                    ID: {course.id}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    ID: {course.id}
+                    Start: {course.start_at}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Timezone: {course.time_zone}
                   </Typography>
                   <Button
                     variant="outlined"
@@ -80,6 +72,14 @@ export default function CourseList({ userId = null }) {
                   >
                     View Course
                   </Button>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    sx={{ marginTop: '8px' }}
+                    onClick={() => handleEnrollUser(course.id)}
+                  >
+                    Enroll User
+                  </Button>
                 </CardContent>
               </Card>
             </Grid>
@@ -87,21 +87,6 @@ export default function CourseList({ userId = null }) {
         ) : (
           <Typography>No courses found.</Typography>
         )}
-      </Grid>
-
-      {/* Pagination */}
-      <Grid container justifyContent="space-between" alignItems="center" mt={4}>
-        <Button
-          variant="contained"
-          disabled={page === 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-        >
-          Previous
-        </Button>
-        <Typography>Page {page}</Typography>
-        <Button variant="contained" onClick={() => setPage((p) => p + 1)}>
-          Next
-        </Button>
       </Grid>
     </div>
   );
