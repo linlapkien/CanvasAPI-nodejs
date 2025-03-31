@@ -1,14 +1,26 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, Typography, Button, Grid } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+} from '@mui/material';
 import axios from 'axios';
 
 export default function CourseList({ userId = null }) {
   const [courses, setCourses] = useState([]);
   const [page, setPage] = useState(1);
+  const [courseState, setCourseState] = useState('available'); // Default state
 
   useEffect(() => {
     const fetchCourses = async () => {
       const params = new URLSearchParams({ page });
+      if (courseState) params.append('state', courseState); // Add state filter
 
       const endpoint = userId
         ? `http://localhost:3002/api/users/${userId}/courses?${params}`
@@ -16,6 +28,7 @@ export default function CourseList({ userId = null }) {
 
       try {
         const { data } = await axios.get(endpoint, { withCredentials: true });
+        console.log('Fetched courses:', data);
         setCourses(data);
       } catch (error) {
         console.error('Error fetching courses:', error);
@@ -23,8 +36,9 @@ export default function CourseList({ userId = null }) {
     };
 
     fetchCourses();
-  }, [page, userId]);
+  }, [page, userId, courseState]);
 
+  //  Function to enroll a user by user ID
   const handleEnrollUser = async (courseId) => {
     const userId = prompt('Enter the User ID to enroll:');
     if (!userId) return;
@@ -47,6 +61,22 @@ export default function CourseList({ userId = null }) {
 
   return (
     <div style={{ padding: '1rem' }}>
+      {/* State Filter Dropdown */}
+      <FormControl sx={{ minWidth: 200, marginBottom: '1rem' }}>
+        <InputLabel>Course State</InputLabel>
+        <Select
+          value={courseState}
+          onChange={(e) => setCourseState(e.target.value)}
+        >
+          <MenuItem value="all">ALL</MenuItem>
+          <MenuItem value="available">Available</MenuItem>
+          <MenuItem value="unpublished">Unpublished</MenuItem>
+          <MenuItem value="completed">Completed</MenuItem>
+          <MenuItem value="deleted">Deleted</MenuItem>
+        </Select>
+      </FormControl>
+
+      {/* Course List */}
       <Grid container spacing={2}>
         {courses.length > 0 ? (
           courses.map((course) => (
@@ -64,6 +94,9 @@ export default function CourseList({ userId = null }) {
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Timezone: {course.time_zone}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Status: {course.workflow_state}
                   </Typography>
                   <Button
                     variant="outlined"

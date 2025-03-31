@@ -75,7 +75,6 @@ function App() {
           <button onClick={handleLogout}>Logout</button>
           {/*-------- Button to get profile --------*/}
           <div style={{ marginTop: '1rem' }}></div>
-
           {/*-------- Show profile if fetched --------*/}
           {user && (
             <div
@@ -110,20 +109,7 @@ function App() {
               <img src={user.avatar_url} alt="Avatar" width="80" />
             </div>
           )}
-
           <ProfileForm user={user} />
-
-          {/* ---------------- Courses Section ---------------------- */}
-          <hr />
-          <h2>Courses Section</h2>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button onClick={() => setShowCourses('user')} disabled={!user}>
-              View My Courses
-            </button>
-            <button onClick={() => setShowCourses('all')}>
-              View All Canvas Courses
-            </button>
-          </div>
 
           {/* ------------- Enroll User Section --------------- */}
           <hr />
@@ -153,6 +139,17 @@ function App() {
             <button onClick={handleEnroll}>Enroll</button>
           </div>
 
+          {/* ---------------- Courses Section ---------------------- */}
+          <hr />
+          <h2>Courses Section</h2>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button onClick={() => setShowCourses('user')} disabled={!user}>
+              View My Courses
+            </button>
+            <button onClick={() => setShowCourses('all')}>
+              View All Canvas Courses
+            </button>
+          </div>
           {/* Conditionally render course lists */}
           {showCourses === 'user' && user && (
             <>

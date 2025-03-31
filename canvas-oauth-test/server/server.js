@@ -353,7 +353,7 @@ app.get('/api/users/:userId/courses', async (req, res) => {
 // --------------------------------------------------------------------------------------------
 /**
  * POST /api/v1/courses/:course_id/enrollments
- * Enroll a user in a course by email
+ * Enroll a user in a course by userid
  */
 app.post('/api/v1/courses/:course_id/enrollments', async (req, res) => {
   const { user_id, enrollment_type } = req.body;
