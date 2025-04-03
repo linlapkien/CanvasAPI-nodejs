@@ -200,6 +200,7 @@ app.get('/api/users', async (req, res) => {
 /**
  /**
  * PUT /api/profile/update
+ * params: field (name, time_zone, pronouns), value
  * Updates Canvas profile using /self endpoint
  */
 app.put('/api/profile/update', async (req, res) => {
@@ -253,6 +254,8 @@ app.put('/api/profile/update', async (req, res) => {
 // --------------------------------------------------------------------------------------------
 /**
  * GET /api/courses/all
+ * params: state[], accountId
+ * state[] (e.g. 'available', 'unpublished', 'completed', 'deleted'.)
  * Get ALL published courses under an account (accessible by both users & admins)
  */
 app.get('/api/courses/all', async (req, res) => {
@@ -309,7 +312,9 @@ app.get('/api/courses/all', async (req, res) => {
 
 /**
  * GET /api/users/:userId/courses
- * Get active courses for a specific user with filters: state[], enrollment_state
+ * params: state[], userId
+ * state[] (e.g. 'available', 'unpublished', 'completed', 'deleted'.)
+ * Get active courses for a specific user with filters: state[]
  */
 app.get('/api/users/:userId/courses', async (req, res) => {
   if (!req.session.user)
@@ -353,6 +358,8 @@ app.get('/api/users/:userId/courses', async (req, res) => {
 // --------------------------------------------------------------------------------------------
 /**
  * POST /api/v1/courses/:course_id/enrollments
+ * params: user_id, enrollment_type, course_id
+ * enrollments: student, teacher, ta, observer
  * Enroll a user in a course by userid
  */
 app.post('/api/v1/courses/:course_id/enrollments', async (req, res) => {
