@@ -9,6 +9,7 @@ function App() {
   const [showRegister, setShowRegister] = useState(false);
   const [showCourses, setShowCourses] = useState(false);
   const [userId, setUserId] = useState('');
+  const [userName, setUserName] = useState('');
   const [courseId, setCourseId] = useState('');
   const [enrollmentType, setEnrollmentType] = useState('StudentEnrollment');
 
@@ -22,6 +23,7 @@ function App() {
         if (data.user) {
           setUser(data.user);
         }
+        setUserName(data.user.name);
       })
       .catch((err) => console.error(err));
   }, []);
@@ -54,7 +56,7 @@ function App() {
         }
       );
 
-      alert(`User ${userId} has been enrolled successfully!`);
+      alert(`User ${userName} has been enrolled successfully!`);
     } catch (error) {
       console.error(
         'Error enrolling user:',

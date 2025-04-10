@@ -280,6 +280,16 @@ app.get('/api/courses/all', async (req, res) => {
     }
   }
 
+  // Add extra fields to the response
+  const includes = [
+    'teachers',
+    'public_description',
+    'course_image',
+    'banner_image',
+    'total_students',
+  ];
+  includes.forEach((field) => params.append('include[]', field));
+
   const endpoint = `${
     process.env.CANVAS_BASE_URL
   }/api/v1/accounts/${accountId}/courses?${params.toString()}`;
@@ -327,18 +337,28 @@ app.get('/api/users/:userId/courses', async (req, res) => {
   const params = new URLSearchParams();
   if (state) params.append('state', state);
 
+  // Add extra fields to the response
+  const includes = [
+    'teachers',
+    'public_description',
+    'course_image',
+    'banner_image',
+    'total_students',
+  ];
+  includes.forEach((field) => params.append('include[]', field));
+
   try {
-    const response = await fetch(
-      `${
-        process.env.CANVAS_BASE_URL
-      }/api/v1/users/${userId}/courses?${params.toString()}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const url = `${
+      process.env.CANVAS_BASE_URL
+    }/api/v1/users/${userId}/courses?${params.toString()}`;
+    console.log('Canvas course URL:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     const data = await response.json();
 

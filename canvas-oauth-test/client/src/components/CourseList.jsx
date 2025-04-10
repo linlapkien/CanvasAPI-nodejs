@@ -17,6 +17,10 @@ export default function CourseList({ userId = null }) {
   const [page, setPage] = useState(1);
   const [courseState, setCourseState] = useState('available'); // Default state
 
+  const handleGoToCourseButton = (courseId) => {
+    window.location.href = `http://localhost:32769/courses/${courseId}`;
+  };
+
   useEffect(() => {
     const fetchCourses = async () => {
       const params = new URLSearchParams({ page });
@@ -102,8 +106,9 @@ export default function CourseList({ userId = null }) {
                     variant="outlined"
                     fullWidth
                     sx={{ marginTop: '8px' }}
+                    onClick={() => handleGoToCourseButton(course.id)}
                   >
-                    View Course
+                    Go to Course
                   </Button>
                   <Button
                     variant="contained"
