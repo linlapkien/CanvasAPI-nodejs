@@ -17,6 +17,7 @@ export default function CourseList({ userId = null }) {
   const [page, setPage] = useState(1);
   const [courseState, setCourseState] = useState('available'); // Default state
 
+  // Go to Course button
   const handleGoToCourseButton = (courseId) => {
     window.location.href = `http://localhost:32769/courses/${courseId}`;
   };

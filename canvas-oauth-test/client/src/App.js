@@ -12,6 +12,10 @@ function App() {
   const [userName, setUserName] = useState('');
   const [courseId, setCourseId] = useState('');
   const [enrollmentType, setEnrollmentType] = useState('StudentEnrollment');
+  // State for fetch list of user from Canvas
+  const [canvasUsers, setCanvasUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
 
   // Check if we're logged in by hitting our server's /api/current_user
   useEffect(() => {
@@ -63,6 +67,69 @@ function App() {
         error.response?.data || error.message
       );
       alert('Failed to enroll user. Please check the User ID or Course ID.');
+    }
+  };
+
+  // Function to fetch list of users from Canvas
+  const handleFetchCanvasUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const res = await axios.get('http://localhost:3002/api/users');
+      setCanvasUsers(res.data.users);
+      setShowUsers(true);
+      console.log('Fetched List of users:', res.data.users);
+    } catch (err) {
+      console.error(
+        'Error fetching Canvas users:',
+        err.response?.data || err.message
+      );
+      alert('Failed to fetch users.');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const CANVAS_API_URL = 'http://localhost:3002/api/users'; // Node Canvas server API
+  const CMS_CREATE_USER_URL = 'http://localhost:8000/api/user/create/'; // Django CMS endpoint
+
+  // Function to sync users from Canvas to CMS
+  const handleSyncCanvasUserstoCMS = async () => {
+    try {
+      const canvasRes = await axios.get(CANVAS_API_URL);
+      const users = canvasRes.data.users;
+
+      console.log('syncUser function - Fetched Canvas users:', users);
+
+      for (const user of users) {
+        const payload = {
+          email: user.login_id,
+          canvas_user_id: user.id,
+          bio: null,
+        };
+
+        try {
+          const res = await axios.post(CMS_CREATE_USER_URL, payload, {
+            headers: {
+              'Content-Type': 'application/json',
+              // 'Authorization': 'Token your_token_here',
+            },
+          });
+
+          console.log(`Synced user: ${user.name} (Canvas ID: ${user.id})`);
+        } catch (err) {
+          console.error(
+            `Failed to sync ${user.name}:`,
+            err.response?.data || err.message
+          );
+        }
+      }
+
+      console.log('All users sync complete!');
+    } catch (error) {
+      console.error(
+        'Error fetching Canvas users:',
+        error.response?.data || error.message
+      );
     }
   };
 
@@ -179,6 +246,32 @@ function App() {
         {showRegister ? 'Hide Register' : 'Register Here'}
       </button>
       {showRegister && <Register />}
+
+      <hr />
+      {/* Fetch list of Canvas Users */}
+      <h2>Fetch list of Canvas Users</h2>
+      <button onClick={handleFetchCanvasUsers}>
+        {loadingUsers ? 'Fetching Users...' : 'Fetch Canvas Users'}
+      </button>
+
+      {showUsers && canvasUsers.length > 0 && (
+        <div style={{ marginTop: '1rem' }}>
+          <h3>Fetched Users from Canvas</h3>
+          <ul>
+            {canvasUsers.map((u) => (
+              <li key={u.id}>
+                <strong>{u.name}</strong> ({u.id}) – {u.short_name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <hr />
+      {/* Sync Canvas Users to CMS */}
+      <h2>Sync Canvas Users</h2>
+      <button onClick={handleSyncCanvasUserstoCMS}>
+        Sync Canvas Users to CMS
+      </button>
     </div>
   );
 }
