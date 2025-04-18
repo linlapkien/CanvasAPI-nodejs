@@ -133,6 +133,49 @@ function App() {
     }
   };
 
+  // Function to sync courses from Canvas to CMS
+  const handleSyncCanvasCourseToCMS = async () => {
+    try {
+      const res = await axios.get(
+        'http://localhost:3002/api/courses/all?state=available',
+        { withCredentials: true }
+      );
+
+      const courses = res.data;
+      console.log('Fetched Canvas courses:', courses);
+
+      for (const course of courses) {
+        const payload = {
+          canvas_course_id: course.id,
+          name: course.name,
+          description: course.public_description || '',
+          course_color: course.course_color || null,
+          price: null, // default value or update manually later
+          status:
+            course.workflow_state === 'available' ? 'published' : 'unpublished',
+        };
+
+        try {
+          await axios.post('http://localhost:8000/api/course/create/', payload);
+          console.log(`Synced course: ${payload.name}`);
+        } catch (err) {
+          console.error(
+            `Failed to sync course ${payload.name}`,
+            err.response?.data || err.message
+          );
+        }
+      }
+
+      alert('Finished syncing all Canvas courses to Django CMS!');
+    } catch (err) {
+      console.error(
+        'Error fetching courses from Canvas:',
+        err.response?.data || err.message
+      );
+      alert('Failed to sync courses');
+    }
+  };
+
   return (
     <div style={{ padding: '2rem' }}>
       <h1>Canvas OAuth2 Test</h1>
@@ -260,7 +303,8 @@ function App() {
           <ul>
             {canvasUsers.map((u) => (
               <li key={u.id}>
-                <strong>{u.name}</strong> ({u.id}) – {u.short_name}
+                Name: <strong>{u.name}</strong>, id: ({u.id}), gmail:{' '}
+                {u.login_id}
               </li>
             ))}
           </ul>
@@ -271,6 +315,12 @@ function App() {
       <h2>Sync Canvas Users</h2>
       <button onClick={handleSyncCanvasUserstoCMS}>
         Sync Canvas Users to CMS
+      </button>
+      <hr />
+      {/* Sync Courses from Canvas to CMS */}
+      <h2>Sync Courses</h2>
+      <button onClick={handleSyncCanvasCourseToCMS}>
+        Sync All Canvas Courses to Django
       </button>
     </div>
   );
