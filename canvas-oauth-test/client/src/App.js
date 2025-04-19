@@ -19,7 +19,7 @@ function App() {
 
   // Check if we're logged in by hitting our server's /api/current_user
   useEffect(() => {
-    fetch('http://localhost:3002/api/current_user', {
+    fetch(`${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/current_user`, {
       credentials: 'include', // important for sending session cookies
     })
       .then((res) => res.json())
@@ -34,12 +34,12 @@ function App() {
 
   // Login = redirect to server's /oauth/login
   const handleLogin = () => {
-    window.location.href = 'http://localhost:3002/oauth/login';
+    window.location.href = `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/oauth/login`;
   };
 
   // Logout = redirect to server's /oauth/logout
   const handleLogout = () => {
-    window.location.href = 'http://localhost:3002/oauth/logout';
+    window.location.href = `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/oauth/logout`;
   };
 
   console.log('User:', user);
@@ -53,7 +53,7 @@ function App() {
 
     try {
       const enrollRes = await axios.post(
-        `http://localhost:3002/api/v1/courses/${courseId}/enrollments`,
+        `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/v1/courses/${courseId}/enrollments`,
         {
           user_id: userId,
           enrollment_type: enrollmentType, // e.g., "StudentEnrollment"
@@ -74,7 +74,9 @@ function App() {
   const handleFetchCanvasUsers = async () => {
     setLoadingUsers(true);
     try {
-      const res = await axios.get('http://localhost:3002/api/users');
+      const res = await axios.get(
+        `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/users`
+      );
       setCanvasUsers(res.data.users);
       setShowUsers(true);
       console.log('Fetched List of users:', res.data.users);
@@ -89,8 +91,8 @@ function App() {
     }
   };
 
-  const CANVAS_API_URL = 'http://localhost:3002/api/users'; // Node Canvas server API
-  const CMS_CREATE_USER_URL = 'http://localhost:8000/api/user/create/'; // Django CMS endpoint
+  const CANVAS_API_URL = `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/users`; // Node Canvas server API
+  const CMS_CREATE_USER_URL = `${process.env.REACT_APP_BE_DJANGO_API_URL_BASE}/api/user/create/`; // Django CMS endpoint
 
   // Function to sync users from Canvas to CMS
   const handleSyncCanvasUserstoCMS = async () => {
@@ -137,7 +139,7 @@ function App() {
   const handleSyncCanvasCourseToCMS = async () => {
     try {
       const res = await axios.get(
-        'http://localhost:3002/api/courses/all?state=available',
+        `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/courses/all?state=available`,
         { withCredentials: true }
       );
 
@@ -156,7 +158,10 @@ function App() {
         };
 
         try {
-          await axios.post('http://localhost:8000/api/course/create/', payload);
+          await axios.post(
+            `${process.env.REACT_APP_BE_DJANGO_API_URL_BASE}/api/course/create/`,
+            payload
+          );
           console.log(`Synced course: ${payload.name}`);
         } catch (err) {
           console.error(

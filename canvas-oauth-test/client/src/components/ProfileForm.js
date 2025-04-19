@@ -8,7 +8,7 @@ export default function ProfileForm() {
 
   // Check if we're logged in by hitting our server's /api/current_user
   useEffect(() => {
-    fetch('http://localhost:3002/api/current_user', {
+    fetch(`${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/current_user`, {
       credentials: 'include', // important for sending session cookies
     })
       .then((res) => res.json())
@@ -21,12 +21,15 @@ export default function ProfileForm() {
   }, []);
 
   const handleSubmit = () => {
-    fetch('http://localhost:3002/api/profile/update', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ field, value }),
-      credentials: 'include',
-    })
+    fetch(
+      `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/profile/update`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field, value }),
+        credentials: 'include',
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {

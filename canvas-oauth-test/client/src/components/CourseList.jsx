@@ -19,7 +19,7 @@ export default function CourseList({ userId = null }) {
 
   // Go to Course button
   const handleGoToCourseButton = (courseId) => {
-    window.location.href = `http://localhost:32769/courses/${courseId}`;
+    window.location.href = `${process.env.REACT_APP_LMS_CANVAS_APP_URL_BASE}/courses/${courseId}`;
   };
 
   useEffect(() => {
@@ -28,8 +28,8 @@ export default function CourseList({ userId = null }) {
       if (courseState) params.append('state', courseState); // Add state filter
 
       const endpoint = userId
-        ? `http://localhost:3002/api/users/${userId}/courses?${params}`
-        : `http://localhost:3002/api/courses/all?${params}`;
+        ? `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/users/${userId}/courses?${params}`
+        : `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/courses/all?${params}`;
 
       try {
         const { data } = await axios.get(endpoint, { withCredentials: true });
@@ -50,7 +50,7 @@ export default function CourseList({ userId = null }) {
 
     try {
       await axios.post(
-        `http://localhost:3002/api/v1/courses/${courseId}/enrollments`,
+        `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/v1/courses/${courseId}/enrollments`,
         {
           user_id: userId,
           enrollment_type: 'StudentEnrollment',
