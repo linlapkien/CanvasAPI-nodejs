@@ -3,11 +3,25 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+// Import these two from React Query
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create a new query client instance
+const queryClient = new QueryClient();
+
+// React Query is amazing for things like:
+// Pagination
+// Caching data
+// Avoiding duplicate network calls
+// Real-time background refreshing
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    {/* Wrap your app in QueryClientProvider */}
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
   </React.StrictMode>
 );
 

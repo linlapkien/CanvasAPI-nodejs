@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
   Typography,
   Button,
   Grid,
@@ -11,39 +9,17 @@ import {
   InputLabel,
 } from '@mui/material';
 import axios from 'axios';
+import CourseCard from './CourseCard'; // ✅ Import CourseCard
 
 export default function CourseList({ userId = null }) {
   const [courses, setCourses] = useState([]);
   const [page, setPage] = useState(1);
-  const [courseState, setCourseState] = useState('available'); // Default state
+  const [courseState, setCourseState] = useState('available');
 
-  // Go to Course button
   const handleGoToCourseButton = (courseId) => {
     window.location.href = `${process.env.REACT_APP_LMS_CANVAS_APP_URL_BASE}/courses/${courseId}`;
   };
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      const params = new URLSearchParams({ page });
-      if (courseState) params.append('state', courseState); // Add state filter
-
-      const endpoint = userId
-        ? `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/users/${userId}/courses?${params}`
-        : `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/courses/all?${params}`;
-
-      try {
-        const { data } = await axios.get(endpoint, { withCredentials: true });
-        console.log('Fetched courses:', data);
-        setCourses(data);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-      }
-    };
-
-    fetchCourses();
-  }, [page, userId, courseState]);
-
-  //  Function to enroll a user by user ID
   const handleEnrollUser = async (courseId) => {
     const userId = prompt('Enter the User ID to enroll:');
     if (!userId) return;
@@ -63,6 +39,27 @@ export default function CourseList({ userId = null }) {
       alert('Failed to enroll user.');
     }
   };
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      const params = new URLSearchParams({ page });
+      if (courseState) params.append('state', courseState);
+
+      const endpoint = userId
+        ? `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/users/${userId}/courses?${params}`
+        : `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/courses/all?${params}`;
+
+      try {
+        const { data } = await axios.get(endpoint, { withCredentials: true });
+        console.log('Fetched courses:', data);
+        setCourses(data);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      }
+    };
+
+    fetchCourses();
+  }, [page, userId, courseState]);
 
   return (
     <div style={{ padding: '1rem' }}>
@@ -85,43 +82,12 @@ export default function CourseList({ userId = null }) {
       <Grid container spacing={2}>
         {courses.length > 0 ? (
           courses.map((course) => (
-            <Grid item xs={12} sm={6} md={4} key={course.id}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6">
-                    {course.name || 'Unnamed Course'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    ID: {course.id}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Start: {course.start_at}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Timezone: {course.time_zone}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Status: {course.workflow_state}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{ marginTop: '8px' }}
-                    onClick={() => handleGoToCourseButton(course.id)}
-                  >
-                    Go to Course
-                  </Button>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    sx={{ marginTop: '8px' }}
-                    onClick={() => handleEnrollUser(course.id)}
-                  >
-                    Enroll User
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
+            <CourseCard
+              key={course.id}
+              course={course}
+              onGoToCourse={handleGoToCourseButton}
+              onEnrollUser={handleEnrollUser}
+            />
           ))
         ) : (
           <Typography>No courses found.</Typography>
