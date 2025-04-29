@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   Typography,
-  Button,
   Grid,
   MenuItem,
   Select,
@@ -9,11 +8,10 @@ import {
   InputLabel,
 } from '@mui/material';
 import axios from 'axios';
-import CourseCard from './CourseCard'; // ✅ Import CourseCard
+import CourseCard from './CourseCard';
 
 export default function CourseList({ userId = null }) {
   const [courses, setCourses] = useState([]);
-  const [page, setPage] = useState(1);
   const [courseState, setCourseState] = useState('available');
 
   const handleGoToCourseButton = (courseId) => {
@@ -30,7 +28,8 @@ export default function CourseList({ userId = null }) {
         {
           user_id: userId,
           enrollment_type: 'StudentEnrollment',
-        }
+        },
+        { withCredentials: true }
       );
 
       alert(`User ${userId} has been enrolled successfully!`);
@@ -42,14 +41,16 @@ export default function CourseList({ userId = null }) {
 
   useEffect(() => {
     const fetchCourses = async () => {
-      const params = new URLSearchParams({ page });
-      if (courseState) params.append('state', courseState);
-
-      const endpoint = userId
-        ? `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/users/${userId}/courses?${params}`
-        : `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/courses/all?${params}`;
-
       try {
+        const params = new URLSearchParams();
+        if (courseState && courseState !== 'all') {
+          params.append('state', courseState);
+        }
+
+        const endpoint = userId
+          ? `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/users/${userId}/courses?${params}`
+          : `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/courses/all?${params}`;
+
         const { data } = await axios.get(endpoint, { withCredentials: true });
         console.log('Fetched courses:', data);
         setCourses(data);
@@ -59,11 +60,11 @@ export default function CourseList({ userId = null }) {
     };
 
     fetchCourses();
-  }, [page, userId, courseState]);
+  }, [userId, courseState]);
 
   return (
     <div style={{ padding: '1rem' }}>
-      {/* State Filter Dropdown */}
+      {/* State Filter */}
       <FormControl sx={{ minWidth: 200, marginBottom: '1rem' }}>
         <InputLabel>Course State</InputLabel>
         <Select
