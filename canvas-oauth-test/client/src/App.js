@@ -3,6 +3,7 @@ import Register from './Register';
 import ProfileForm from './components/ProfileForm';
 import CourseList from './components/CourseList';
 import axios from 'axios';
+import ViewAllCourses from './components/ViewAllCourse';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -276,7 +277,7 @@ function App() {
           )}
           {showCourses === 'all' && (
             <>
-              <h3 style={{ marginTop: '1rem' }}>All Canvas Courses</h3>
+              <h3 style={{ marginTop: '1rem' }}>Admin All Canvas Courses</h3>
               <CourseList />
             </>
           )}
@@ -327,6 +328,11 @@ function App() {
       <button onClick={handleSyncCanvasCourseToCMS}>
         Sync All Canvas Courses to Django
       </button>
+
+      {/* Client Display courses have price */}
+      <hr />
+      <h3 style={{ marginTop: '1rem' }}>Client Display courses have price</h3>
+      <ViewAllCourses />
     </div>
   );
 }

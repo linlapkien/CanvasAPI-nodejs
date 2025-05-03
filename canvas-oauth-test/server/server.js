@@ -110,6 +110,7 @@ app.get('/oauth/logout', (req, res) => {
   });
 });
 
+// ------------------------ System Routes ------------------------
 // --------------------------------------------------------------------------------------------
 /**
  * POST /api/register
@@ -440,6 +441,121 @@ app.post('/api/v1/courses/:course_id/enrollments', async (req, res) => {
   } catch (error) {
     console.error('Enrollment Error:', error.response?.data || error.message);
     return res.status(500).json({ error: 'Canvas enrollment failed' });
+  }
+});
+
+// --------------------------------------------------------------------------------------------
+/**
+ * GET /api/courses/with-price
+ * Get ALL available Canvas courses under an account that also have a price (accessible by users/clients)
+ */
+app.get('/api/courses/with-price', async (req, res) => {
+  // 1. Check authentication
+  if (!req.session.user)
+    return res.status(401).json({ error: 'Not authenticated' });
+
+  // 2. Load required configs
+  const token = process.env.CANVAS_ADMIN_TOKEN;
+  const accountId = process.env.CANVAS_ACCOUNT_ID;
+  const djangoBaseURL = process.env.DJANGO_BASE_URL;
+
+  if (!token || !accountId || !djangoBaseURL) {
+    return res.status(500).json({ error: 'Missing required configuration' });
+  }
+
+  // 3. Build query params
+  // Fetch only published courses
+  const params = new URLSearchParams();
+  params.append('state', 'available'); // fetch only published courses
+  params.append('per_page', '10'); // limit to 10 courses per page
+
+  const includes = [
+    'teachers',
+    'public_description',
+    'course_image',
+    'banner_image',
+    'total_students',
+  ];
+  includes.forEach((field) => params.append('include[]', field));
+
+  let allCourses = [];
+  let nextUrl = `${
+    process.env.CANVAS_BASE_URL
+  }/api/v1/accounts/${accountId}/courses?${params.toString()}`;
+
+  try {
+    // 4. Fetch paginated courses from Canvas
+    while (nextUrl) {
+      console.log('Fetching courses from:', nextUrl);
+
+      const response = await fetch(nextUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return res.status(response.status).json({
+          error: 'Canvas API call failed',
+          canvasError: data,
+        });
+      }
+
+      allCourses.push(...data);
+
+      const linkHeader = response.headers.get('link');
+      const links = {};
+      if (linkHeader) {
+        linkHeader.split(',').forEach((part) => {
+          const match = part.match(/<([^>]+)>;\s*rel="([^"]+)"/);
+          if (match) {
+            const [, url, rel] = match;
+            links[rel] = url;
+          }
+        });
+      }
+
+      nextUrl = links.next || null;
+    }
+
+    // 5. Filter courses with price info from Django
+    const coursesWithPrice = [];
+
+    await Promise.all(
+      allCourses.map(async (course) => {
+        try {
+          const priceRes = await fetch(
+            `${djangoBaseURL}/api/course/price/${course.id}`,
+            {
+              method: 'GET',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+
+          if (priceRes.ok) {
+            const priceData = await priceRes.json();
+            if (priceData?.price) {
+              course.price = priceData.price; // attach price
+              coursesWithPrice.push(course);
+            }
+          }
+        } catch (err) {
+          console.warn(`⚠️ Failed to fetch price for course ${course.id}`);
+        }
+      })
+    );
+
+    // 6. Return results
+    return res.json(coursesWithPrice);
+  } catch (err) {
+    console.error('Failed to fetch courses:', err);
+    return res
+      .status(500)
+      .json({ error: 'Fetch failed', details: err.message });
   }
 });
 
