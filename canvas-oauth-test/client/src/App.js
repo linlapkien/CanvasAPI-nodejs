@@ -182,6 +182,31 @@ function App() {
     }
   };
 
+  const fetchCanvasAdmins = async () => {
+    const userIds = []; // filter
+
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/listCanvasAdmins`,
+        {
+          params: {
+            user_ids: userIds.join(','),
+          },
+        }
+      );
+
+      const admins = response.data;
+      console.log('Admins:', admins);
+    } catch (error) {
+      console.error(
+        'Error fetching admins:',
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  fetchCanvasAdmins();
+
   return (
     <div style={{ padding: '2rem' }}>
       <h1>Canvas OAuth2 Test</h1>

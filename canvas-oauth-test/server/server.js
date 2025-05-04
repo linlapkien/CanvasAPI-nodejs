@@ -559,6 +559,45 @@ app.get('/api/courses/with-price', async (req, res) => {
   }
 });
 
+// --------------------------------------------------------------------------------------------
+/**
+ * GET /api/listCanvasAdmins
+ * Fetch all Canvas admins under
+ */
+app.get('/api/listCanvasAdmins', async (req, res) => {
+  const accountId = process.env.CANVAS_ACCOUNT_ID; // e.g., 1
+  const userIds = req.query.user_ids; // e.g., ?user_ids=1,2,3
+
+  try {
+    const url = `${process.env.CANVAS_BASE_URL}/api/v1/accounts/${accountId}/admins`;
+
+    const params = new URLSearchParams();
+    if (userIds) {
+      userIds.split(',').forEach((id) => params.append('user_id[]', id.trim()));
+    }
+
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${CANVAS_ADMIN_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      params,
+    });
+
+    console.log('Admins:', response.data);
+    res.status(200).json(response.data); // Return data to client
+  } catch (error) {
+    console.error(
+      'Error fetching admins:',
+      error.response?.data || error.message
+    );
+    res.status(500).json({
+      error: 'Failed to fetch admins',
+      details: error.response?.data || error.message,
+    });
+  }
+});
+
 // Start server on port 3002
 app.listen(3002, () => {
   console.log('Canvas OAuth server running on http://localhost:3002');
