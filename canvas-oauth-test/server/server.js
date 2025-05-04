@@ -561,20 +561,23 @@ app.get('/api/courses/with-price', async (req, res) => {
 
 // --------------------------------------------------------------------------------------------
 /**
- * GET /api/listCanvasAdmins
+ * GET /api/checkCanvasAdmin
  * Fetch all Canvas admins under
  */
-app.get('/api/listCanvasAdmins', async (req, res) => {
+app.get('/api/checkCanvasAdmin', async (req, res) => {
   const accountId = process.env.CANVAS_ACCOUNT_ID; // e.g., 1
-  const userIds = req.query.user_ids; // e.g., ?user_ids=1,2,3
+  const userId = req.query.user_id; // e.g., /api/checkCanvasAdmin?user_id=1
+
+  // Check if userId is provided
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing user_id parameter' });
+  }
 
   try {
     const url = `${process.env.CANVAS_BASE_URL}/api/v1/accounts/${accountId}/admins`;
 
     const params = new URLSearchParams();
-    if (userIds) {
-      userIds.split(',').forEach((id) => params.append('user_id[]', id.trim()));
-    }
+    params.append('user_id[]', userId); // Canvas expects array-style query param, but i modify it to a string - which can be handle for check Canvas admins
 
     const response = await axios.get(url, {
       headers: {
@@ -584,8 +587,17 @@ app.get('/api/listCanvasAdmins', async (req, res) => {
       params,
     });
 
-    console.log('Admins:', response.data);
-    res.status(200).json(response.data); // Return data to client
+    // console.log('Admins:', response.data);
+    // res.status(200).json(response.data); // Return data to client
+
+    // Check if the returned admins include this user
+    const isAdmin =
+      Array.isArray(response.data) &&
+      response.data.some(
+        (admin) => admin.user?.id?.toString() === userId.toString()
+      );
+
+    res.status(200).json({ isAdmin });
   } catch (error) {
     console.error(
       'Error fetching admins:',

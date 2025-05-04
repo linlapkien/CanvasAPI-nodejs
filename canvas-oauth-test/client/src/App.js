@@ -182,30 +182,27 @@ function App() {
     }
   };
 
-  const fetchCanvasAdmins = async () => {
-    const userIds = []; // filter
-
+  const checkIfUserIsAdmin = async (userId) => {
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/listCanvasAdmins`,
+        `${process.env.REACT_APP_BE_CANVAS_API_URL_BASE}/api/checkCanvasAdmin`,
         {
-          params: {
-            user_ids: userIds.join(','),
-          },
+          params: { user_id: userId },
         }
       );
 
-      const admins = response.data;
-      console.log('Admins:', admins);
+      console.log('Is Admin:', response.data.isAdmin);
+      return response.data.isAdmin;
     } catch (error) {
       console.error(
-        'Error fetching admins:',
+        'Error checking admin:',
         error.response?.data || error.message
       );
+      return false;
     }
   };
 
-  fetchCanvasAdmins();
+  checkIfUserIsAdmin('34'); // Example usage
 
   return (
     <div style={{ padding: '2rem' }}>
