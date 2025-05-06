@@ -614,3 +614,189 @@ app.get('/api/checkCanvasAdmin', async (req, res) => {
 app.listen(3002, () => {
   console.log('Canvas OAuth server running on http://localhost:3002');
 });
+
+// --------------------------------------------------------------------------------------------
+//Load Stripe for Payment
+const Stripe = require('stripe');
+const crypto = require('crypto'); // for generating unique temp IDs for rd transaction_id
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+app.use(cors());
+app.use(express.json());
+
+// Endpoint to create a checkout session
+app.post('/api/create-checkout-session', async (req, res) => {
+  const { items, user_email } = req.body;
+
+  console.log('Received items:', items);
+
+  // Make sure items are provided
+  if (!items || items.length === 0) {
+    return res.status(400).json({ error: 'No items in the cart' });
+  }
+
+  // Check if user_email is exist
+  if (!user_email) {
+    return res.status(400).json({ error: 'User not logged in' });
+  }
+
+  try {
+    // Format line items based on the cart
+    const line_items = items.map((item) => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.title, // assuming item has a title
+        },
+        unit_amount: Math.round(item.price * 100), // Stripe expects amounts in cents
+      },
+      quantity: 1, // Assuming quantity is 1, you can adjust this if needed
+    }));
+
+    // Create temp transaction IDs for localStorage or later updating
+    const tempTransactionMap = [];
+
+    // Create payments in Django for each item
+    for (const item of items) {
+      // Generate a unique temp transaction ID
+      const temp_transaction_id = `PMT-temp-${crypto
+        .randomBytes(2)
+        .toString('hex')}`; // e.g. PMT-temp-a1b2
+      tempTransactionMap.push({
+        course_name: item.title,
+        temp_transaction_id,
+      });
+
+      await axios.post(
+        'http://localhost:8000/api/payment/create/',
+        {
+          transaction_id: temp_transaction_id,
+          price: item.price.toString(),
+          status: 'fail',
+          user_email,
+          course_name: item.title,
+          amount_of_course: 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${CANVAS_ADMIN_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    // Create a Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: line_items,
+      mode: 'payment',
+      success_url: `${process.env.CMS_BASE_URL}/payment-success`,
+      cancel_url: `${process.env.CMS_BASE_URL}/cancel`,
+    });
+
+    console.log('Checkout session created:', session.id);
+    console.log('Checkout session:', session);
+    // Send the session ID back to the frontend
+    res.json({
+      sessionId: session.id,
+      tempTransactionMap, // frontend will use this to update real transaction later
+    });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to retrieve session details via stripe
+app.get('/api/get-session', async (req, res) => {
+  const sessionId = req.query.session_id;
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    res.json(session);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------------------------
+// sending email contact-us
+const nodemailer = require('nodemailer');
+
+/**
+ * POST /api/contact/send
+ * Gửi email từ form liên hệ (React)
+ */
+app.post('/api/contact/send', async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Missing fields' });
+  }
+
+  try {
+    // Tạo transporter gửi mail bằng Gmail SMTP
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
+
+    // Email Content - User will receive this.
+    const mailOptions = {
+      from: process.env.CONTACT_RECEIVER,
+      to: `"${name}" <${email}>`,
+      subject: `📩 Thank you for submitting to Ref.Team`,
+      html: `
+        <p>Hi ${name},<br>
+        Thanks for getting in touch with Ref.Team's support team! This is an auto-reply confirming that your inquiry has been received.
+        <br>Our regular office hours are <b>9 am - 6 pm (Singapore Time - GTM+8), Monday - Friday </b> and we aim to have all inquiries responded to within 24 hours of receiving the request.
+        <br>Here's a summary of the information you provided:
+        <pre style="font-size: 15px">
+        <strong>Name:</strong> ${name}
+        <strong>Email:</strong> ${email}
+        <strong>Message:</strong>
+        ${message.replace(/\n/g, '<br>')}
+        </pre>
+        <br>Now that you've submitted your information to us, our team will contact you as soon as possible.
+        <br>If you want to see more our services. Please visit <a href="https://ref.team/appointments/" target="_blank">site</a>
+        <br><br>Regards,<br>
+        Ref.Team</p>
+        <br>
+        <p style="color: gray; font-size: 12px;">Please do not reply to this message; it was automatically generated, and replies will not be read.<br>Copyright @ 2025 Ref.Team </p>
+      `,
+    };
+
+    // Email Content - Ref.team will receive this.
+    const companymailOptions = {
+      from: `"${name}" <${email}>`,
+      replyTo: email,
+      to: process.env.CONTACT_RECEIVER,
+      subject: `📬 New Contact Submission from ${name}`,
+      html: `
+        <p>You have a new contact form submission:
+        <br><br>Here's a summary of the information that ${name} has provided:
+        <pre style="font-size: 15px">
+        <strong>Name:</strong> ${name}
+        <strong>Email:</strong> ${email}
+        <strong>Message:</strong>
+        ${message.replace(/\n/g, '<br>')}
+        </pre>
+        <br><p style="color: gray; font-size: 12px;">Ref.Team Auto Notification<br>Do not reply to this email.</p>
+      `,
+    };
+
+    // Send Email to users
+    await transporter.sendMail(mailOptions);
+
+    // auto notification to ref.team when users submitted.
+    await transporter.sendMail(companymailOptions);
+
+    res.json({ success: true, message: 'Message sent successfully!' });
+  } catch (err) {
+    console.error('Email send error:', err);
+    res.status(500).json({ success: false, error: 'Email sending failed' });
+  }
+});
