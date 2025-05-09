@@ -628,7 +628,7 @@ app.use(express.json());
 app.post('/api/create-checkout-session', async (req, res) => {
   const { items, user_email } = req.body;
 
-  console.log('Received items:', items);
+  // console.log('Received items:', items);
 
   // Make sure items are provided
   if (!items || items.length === 0) {
@@ -668,7 +668,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       });
 
       await axios.post(
-        'http://localhost:8000/api/payment/create/',
+        `${process.env.DJANGO_BASE_URL}/api/payment/create/`,
         {
           transaction_id: temp_transaction_id,
           price: item.price.toString(),
@@ -695,8 +695,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
       cancel_url: `${process.env.CMS_BASE_URL}/cancel`,
     });
 
-    console.log('Checkout session created:', session.id);
-    console.log('Checkout session:', session);
+    // console.log('Checkout session created:', session.id);
+    // console.log('Checkout session:', session);
     // Send the session ID back to the frontend
     res.json({
       sessionId: session.id,
@@ -716,6 +716,128 @@ app.get('/api/get-session', async (req, res) => {
     res.json(session);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint to handle synchronization user from Canvas to CMS Django
+app.get('/api/sync-canvas-to-cms', async (req, res) => {
+  try {
+    const canvasUserResponse = await axios.get(
+      `http://localhost:3002/api/users`,
+      {
+        headers: {
+          Authorization: `Bearer ${CANVAS_ADMIN_TOKEN}`,
+        },
+      }
+    );
+
+    const users = canvasUserResponse.data;
+
+    for (const user of users) {
+      const payload = {
+        email: user.login_id,
+        canvas_user_id: user.id,
+        bio: null,
+      };
+
+      try {
+        await axios.post(
+          `${process.env.DJANGO_BASE_URL}/api/user/create/`,
+          payload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        console.log(`Synced user: ${user.name} (Canvas ID: ${user.id})`);
+      } catch (err) {
+        console.error(
+          `Failed to sync ${user.name}:`,
+          err.response?.data || err.message
+        );
+      }
+    }
+
+    res.status(200).json({ message: 'All users synced successfully.' });
+  } catch (error) {
+    console.error('Error fetching Canvas users:', error.message);
+    res.status(500).json({ error: 'Failed to sync users' });
+  }
+});
+
+/// Endpoint to enroll user to course after payment success
+app.post('/api/payment-success/enroll-to-course', async (req, res) => {
+  try {
+    const { user_email, cartForPayment, transaction_id, user_id } = req.body;
+
+    // Check if user_email is exist
+    if (!user_email) {
+      return res.status(400).json({ error: 'User not logged in' });
+    }
+    // Check if cartForPayment is exist
+    if (!cartForPayment || !Array.isArray(cartForPayment)) {
+      return res.status(400).json({ error: 'No payments yet' });
+    }
+    // Check if transaction_id is exist
+    if (!transaction_id) {
+      return res.status(400).json({ error: 'No transaction ID' });
+    }
+    // Check if user_id is exist
+    if (!user_id) {
+      return res.status(400).json({ error: 'No user ID provided' });
+    }
+
+    // console.log('cartForPayment:', cartForPayment);
+
+    // Loop over each course and handle enrollment
+    const enrollmentResults = await Promise.all(
+      cartForPayment.map(async (course) => {
+        console.log('course:', course);
+        console.log('user_email:', user_email);
+        console.log('transaction_id:', transaction_id);
+
+        console.log('CheckPoint 1');
+
+        // Step 1: Create enrollment_course record in Django
+        await axios.post(
+          `http://localhost:8000/api/enrollment_course/create/`,
+          {
+            enrollment_status: 'enrolled',
+            user_email: user_email,
+            course_name: course.title,
+            payment_transaction_id: transaction_id,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${CANVAS_ADMIN_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        console.log('CheckPoint 2');
+        const courseId = course.id;
+
+        // Step 2: Enroll user into Canvas course
+        await axios.post(
+          `http://localhost:3002/api/v1/courses/${courseId}/enrollments`,
+          {
+            user_id,
+            enrollment_type: 'StudentEnrollment',
+          }
+        );
+        console.log('CheckPoint 3');
+      })
+    );
+
+    return res
+      .status(200)
+      .json({ message: 'Enrollment successful', results: enrollmentResults });
+  } catch (error) {
+    console.error('Enrollment error:', error.message);
+    return res.status(500).json({ error: 'Enrollment process failed' });
   }
 });
 
